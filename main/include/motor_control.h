@@ -7,9 +7,9 @@ typedef struct {
     int gpio_dir;
     int unit;
     int timer;
-    int operator;
+    int op;
 } Motor;
 
-void init_unit(int unit, int timer);
-Motor* init_motor(int gpio_pwm, int gpio_dir);
-void set_motor_speed(Motor* motor, float speed);
+void initUnit(int unit, int timer);
+Motor* createMotor(int gpio_pwm, int gpio_dir);
+void setMotorSpeed(Motor* motor, float speed);

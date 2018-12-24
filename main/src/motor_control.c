@@ -8,7 +8,7 @@
 #include <stdlib.h>
 #include <math.h>
 
-void init_unit(int unit, int timer) {
+void initUnit(int unit, int timer) {
     mcpwm_config_t pwm_config;
     pwm_config.frequency = 50;    //frequency = 50Hz, i.e. for every servo motor time period should be 20ms
     pwm_config.cmpr_a = 0;    //duty cycle of PWMxA = 0
@@ -18,7 +18,7 @@ void init_unit(int unit, int timer) {
     mcpwm_init(unit, timer, &pwm_config);    //Configure PWM0A & PWM0B with above settings
 }
 
-Motor* init_motor(int gpio_pwm, int gpio_dir) {
+Motor* createMotor(int gpio_pwm, int gpio_dir) {
     // Keep track of unit and pin for auto allocation
     static int unit = MCPWM_UNIT_0;
     static int output = MCPWM0A;
@@ -45,7 +45,7 @@ Motor* init_motor(int gpio_pwm, int gpio_dir) {
     motor->gpio_dir = gpio_dir;
     motor->unit = my_unit;
     motor->timer = my_timer;
-    motor->operator = my_operator;
+    motor->op = my_operator;
 
     return motor;
 }
@@ -53,12 +53,12 @@ Motor* init_motor(int gpio_pwm, int gpio_dir) {
 /**
  * Sets the speed between -1.0 and 1.0
  */
-void set_motor_speed(Motor* motor, float speed) {
+void setMotorSpeed(Motor* motor, float speed) {
     float magnitude = fabs(speed);
     //int direction = speed > 0;
     // Clamp magnitude
     magnitude = fmin(fmax(magnitude, 0), 1.0);
     // Interpolate magnitude to us
     int micros = MIN_PULSE_US + (MAX_PULSE_US - MIN_PULSE_US) * magnitude;
-    mcpwm_set_duty_in_us(motor->unit, motor->timer, motor->operator, micros);
+    mcpwm_set_duty_in_us(motor->unit, motor->timer, motor->op, micros);
 }
