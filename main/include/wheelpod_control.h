@@ -24,7 +24,7 @@
 typedef struct {
     Motor* motor1;
     Motor* motor2;
-    int gpio_sensor;
+    int sensor_channel;
     TaskHandle_t control_task_handle;
     QueueHandle_t message_queue;
 } Wheelpod;
@@ -34,10 +34,12 @@ typedef struct {
     float wheelAngle;
 } WheelpodCommand;
 
-Wheelpod* createWheelpod(Motor* motor1, Motor* motor2, int gpio_sensor);
+Wheelpod* createWheelpod(Motor* motor1, Motor* motor2, int sensor_channel);
 
 void vRunWheelpod(void* args);
 
 float signAngle(float sign, float angle);
 
 bool within90(float angle1, float angle2);
+
+float getAngle(Wheelpod* wheelpod);

@@ -5,18 +5,20 @@
 #include "motor_control.h"
 #include <math.h>
 #include <stdlib.h>
+#include <driver/adc.h>
 
 // Stop VSCode from complaining
 #ifndef pdFALSE
 #define pdFALSE 0
 #endif
 
-Wheelpod* createWheelpod(Motor* motor1, Motor* motor2, int gpio_sensor) {
+Wheelpod* createWheelpod(Motor* motor1, Motor* motor2, int sensor_channel) {
     Wheelpod* wheelpod = (Wheelpod*) malloc(sizeof(Wheelpod));
     wheelpod->motor1 = motor1;
     wheelpod->motor2 = motor2;
-    wheelpod->gpio_sensor = gpio_sensor;
+    wheelpod->sensor_channel = sensor_channel;
     wheelpod->message_queue = xQueueCreate(5, sizeof(WheelpodCommand));
+    adc1_config_channel_atten(sensor_channel, ADC_ATTEN_DB_11);
     xTaskCreate(vRunWheelpod, "wheelpod_run", 4096, wheelpod, PRIORITY_WHEELPOD, 
                 &wheelpod->control_task_handle);
     return wheelpod;
@@ -34,7 +36,7 @@ void vRunWheelpod(void * arg) {
 
     TickType_t xLastWakeTime = xTaskGetTickCount();
     while (true) {
-        float wheelAngle = 0; // TODO read from position sensor
+        float wheelAngle = getAngle(wheelpod);
         float realAngle = signAngle(wheelDirection, wheelAngle);
 
         // Receive messages
@@ -92,4 +94,15 @@ bool within90(float angle1, float angle2) {
     float a = angle1 - angle2;
     a = remainderf(a + ANGLE_MAX, 2*ANGLE_MAX) - ANGLE_MAX;
     return a <= ANGLE_MAX / 2;
+}
+
+float getAngle(Wheelpod* wheelpod) {
+    int reading = adc1_get_raw(wheelpod->sensor_channel);
+    // Sensor output is 10-90
+    float value = reading / 4096.0;
+    float angle = 360 * (value - 0.1) / 0.8;
+    if (angle > 180) {
+        angle -= 360;
+    }
+    return angle;
 }
