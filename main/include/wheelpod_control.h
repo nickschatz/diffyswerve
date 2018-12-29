@@ -27,6 +27,8 @@ typedef struct {
     int sensor_channel;
     TaskHandle_t control_task_handle;
     QueueHandle_t message_queue;
+    float xpos;
+    float ypos;
 } Wheelpod;
 
 typedef struct {
@@ -43,3 +45,5 @@ float signAngle(float sign, float angle);
 bool within90(float angle1, float angle2);
 
 float getAngle(Wheelpod* wheelpod);
+
+void setWheelpod(Wheelpod* wheelpod, float speed, float angle);

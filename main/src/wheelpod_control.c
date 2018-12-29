@@ -60,8 +60,9 @@ void vRunWheelpod(void * arg) {
         float error = -realAngle;  // Because targetAngle always is zero in target-angle space
         float dtheta_speed = kP_WHEELPOD * error; // Error P loop
 
-        float m1 = (dtheta_speed + wheelDirection * wheelSpeed / (M_PI * WHEEL_DIA * G2_WHEELPOD * kV_MOTOR)) / (2 * G1_WHEELPOD);
-        float m2 = (dtheta_speed - wheelDirection * wheelSpeed / (M_PI * WHEEL_DIA * G2_WHEELPOD * kV_MOTOR)) / (2 * G1_WHEELPOD);
+        float wheelPow = wheelSpeed / (M_PI * WHEEL_DIA * G2_WHEELPOD * kV_MOTOR);
+        float m1 = (dtheta_speed + wheelDirection * wheelPow) / (2 * G1_WHEELPOD);
+        float m2 = (dtheta_speed - wheelDirection * wheelPow) / (2 * G1_WHEELPOD);
 
         setMotorSpeed(wheelpod->motor1, m1 / SYSTEM_VOLTAGE);
         setMotorSpeed(wheelpod->motor2, m2 / SYSTEM_VOLTAGE);
@@ -105,4 +106,16 @@ float getAngle(Wheelpod* wheelpod) {
         angle -= 360;
     }
     return angle;
+}
+
+/**
+ * Sends a message to a wheelpod
+ * speed: in/s
+ * angle: radians
+ */
+void setWheelpod(Wheelpod* wheelpod, float speed, float angle) {
+    WheelpodCommand cmd;
+    cmd.wheelAngle = angle;
+    cmd.wheelSpeed = speed;
+    xQueueSend(wheelpod->message_queue, &cmd, 0);
 }
