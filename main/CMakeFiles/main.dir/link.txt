@@ -1,0 +1,2 @@
+/bin/xtensa-esp32-elf-ar qc libmain.a  CMakeFiles/main.dir/src/diffyswerve_main.c.obj CMakeFiles/main.dir/src/motor_control.c.obj CMakeFiles/main.dir/src/wheelpod_control.c.obj CMakeFiles/main.dir/src/encoder_i2c.c.obj
+/bin/xtensa-esp32-elf-ranlib libmain.a

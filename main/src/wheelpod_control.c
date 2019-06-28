@@ -12,13 +12,14 @@
 #define pdFALSE 0
 #endif
 
-Wheelpod* createWheelpod(Motor* motor1, Motor* motor2, int sensor_channel) {
+Wheelpod* createWheelpod(Motor* motor1, Motor* motor2, Encoder encoder, float angle_offset) {
     Wheelpod* wheelpod = (Wheelpod*) malloc(sizeof(Wheelpod));
     wheelpod->motor1 = motor1;
     wheelpod->motor2 = motor2;
-    wheelpod->sensor_channel = sensor_channel;
     wheelpod->message_queue = xQueueCreate(5, sizeof(WheelpodCommand));
-    adc1_config_channel_atten(sensor_channel, ADC_ATTEN_DB_11);
+    wheelpod->encoder = encoder;
+    wheelpod->angle_offset = angle_offset;
+    encoder_set_hysteresis(encoder, 0b00); // Turn off hysteresis for a continuous 360<->0 transition
     xTaskCreate(vRunWheelpod, "wheelpod_run", 4096, wheelpod, PRIORITY_WHEELPOD, 
                 &wheelpod->control_task_handle);
     return wheelpod;
@@ -56,13 +57,20 @@ void vRunWheelpod(void * arg) {
         realAngle -= wheelAngleTarget;
         realAngle = remainderf(realAngle, ANGLE_MAX);        
 
+        wheelpod->angle = realAngle;
         // Speed recombination
         float error = -realAngle;  // Because targetAngle always is zero in target-angle space
-        float dtheta_speed = kP_WHEELPOD * error; // Error P loop
 
-        float wheelPow = wheelSpeed / (M_PI * WHEEL_DIA * G2_WHEELPOD * kV_MOTOR);
-        float m1 = (dtheta_speed + wheelDirection * wheelPow) / (2 * G1_WHEELPOD);
-        float m2 = (dtheta_speed - wheelDirection * wheelPow) / (2 * G1_WHEELPOD);
+        static float integrator = 0;
+        integrator += error * PERIOD_WHEELPOD;
+        if (fabs(error) > IZONE_WHEELPOD) {
+            integrator = 0;
+        }
+        float dtheta_speed = (kP_WHEELPOD * error + kI_WHEELPOD * integrator) / kV_MOTOR; // Error P loop
+
+        float wheelPow = 60 * wheelSpeed / (M_PI * WHEEL_DIA * G2_WHEELPOD * kV_MOTOR);
+        float m1 = (-dtheta_speed + wheelDirection * wheelPow) / (2 * G1_WHEELPOD);
+        float m2 = (-dtheta_speed - wheelDirection * wheelPow) / (2 * G1_WHEELPOD);
 
         setMotorSpeed(wheelpod->motor1, m1 / SYSTEM_VOLTAGE);
         setMotorSpeed(wheelpod->motor2, m2 / SYSTEM_VOLTAGE);
@@ -98,12 +106,9 @@ bool within90(float angle1, float angle2) {
 }
 
 float getAngle(Wheelpod* wheelpod) {
-    int reading = adc1_get_raw(wheelpod->sensor_channel);
-    // Sensor output is 10-90
-    float value = reading / 4096.0;
-    float angle = 360 * (value - 0.1) / 0.8;
-    if (angle > 180) {
-        angle -= 360;
+    float angle = encoder_read_angle(wheelpod->encoder) - wheelpod->angle_offset;
+    if (angle > M_PI) {
+        angle -= 2*M_PI;
     }
     return angle;
 }

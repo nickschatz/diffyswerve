@@ -4,12 +4,11 @@
 #define MAX_PULSE_US 2000
 
 typedef struct {
-    int gpio_dir;
     int unit;
     int timer;
     int op;
 } Motor;
 
 void initUnit(int unit, int timer);
-Motor* createMotor(int gpio_pwm, int gpio_dir);
+Motor* createMotor(int gpio_pwm);
 void setMotorSpeed(Motor* motor, float speed);
